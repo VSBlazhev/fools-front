@@ -12,7 +12,7 @@ import { useSocketActions } from "../hooks/useSocketActions.ts";
 
 export type Player = { username: string; ready: boolean };
 
-function Room(props) {
+function Room() {
   const userInfo = useSelector((state: RootState) => state.userState);
 
   const userState = useSelector((state: RootState) => state.userState.ready);

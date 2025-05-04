@@ -19,7 +19,7 @@ import { useSocketActions } from "../hooks/useSocketActions.ts";
 import TableCard from "./TableCard.tsx";
 import { data } from "autoprefixer";
 
-function Game(props) {
+function Game() {
   const {
     hand,
     players,

@@ -1,12 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { UserState, userStateSlice } from "./userStateSlice.ts";
-import { TCard, Player } from "../types/types.ts";
+import { TCard, Player, CardRank } from "../types/types.ts";
 
 export interface GameState {
   players: Player[];
   hand: TCard[];
   tableCards: TCard[];
-  konCard: TCard | undefined;
+  konCard: CardRank | undefined;
   currentPlayer: string | undefined;
   isAllActions: boolean;
   isGameOver: boolean;
@@ -38,7 +38,7 @@ export const gameStateSlice = createSlice({
     setTableCards: (state, action: PayloadAction<TCard[]>) => {
       state.tableCards = action.payload;
     },
-    setKonCard: (state, action: PayloadAction<TCard>) => {
+    setKonCard: (state, action: PayloadAction<CardRank>) => {
       state.konCard = action.payload;
     },
     setCurrentPlayer: (state, action: PayloadAction<string>) => {
