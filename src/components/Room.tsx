@@ -44,12 +44,10 @@ function Room() {
     });
 
     socket.on("timer", (data) => {
-      console.log(data);
       setTimer(true);
     });
 
     socket.on("abortTimer", (data) => {
-      console.log(data);
       setTimer(false);
     });
 
@@ -67,6 +65,11 @@ function Room() {
 
     return () => {
       socket.off("roomJoined");
+      socket.off("playerStatus");
+      socket.off("timer");
+      socket.off("abortTimer");
+      socket.off("gameReady");
+      socket.off("roomLeft");
     };
   }, []);
 
@@ -76,12 +79,12 @@ function Room() {
 
       {timer ? <CountdownTimer initialTime={5} /> : null}
       <div className={"flex gap-4"}>
-        {players.map((player) => (
+        {players.map((player, index) => (
           <div
             key={player[0]}
             className={"flex flex-col items-center justify-between border-4"}
           >
-            <span>Username: {player[0]}</span>
+            <span>Username: {`Player ${index + 1}`}</span>
             <span>Ready: {player[1].ready.toString()}</span>
 
             {player[0] === userInfo.id ? <span>Thats you</span> : null}

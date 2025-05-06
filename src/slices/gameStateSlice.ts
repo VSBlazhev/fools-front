@@ -13,6 +13,7 @@ export interface GameState {
   shooterId: string | undefined;
   chamber: boolean[];
   haveToShoot: boolean;
+  previousPlayer: string | undefined;
 }
 
 const initialState: GameState = {
@@ -26,6 +27,7 @@ const initialState: GameState = {
   shooterId: undefined,
   chamber: [],
   haveToShoot: false,
+  previousPlayer: undefined,
 };
 
 export const gameStateSlice = createSlice({
@@ -62,6 +64,9 @@ export const gameStateSlice = createSlice({
     setShoot: (state, action: PayloadAction<boolean>) => {
       state.haveToShoot = action.payload;
     },
+    setPreviousPlayer: (state, action: PayloadAction<string>) => {
+      state.previousPlayer = action.payload;
+    },
   },
 });
 
@@ -77,6 +82,7 @@ export const {
   setGameOver,
   setChamber,
   setShoot,
+  setPreviousPlayer,
 } = gameStateSlice.actions;
 
 export default gameStateSlice.reducer;

@@ -8,13 +8,14 @@ import {
   setHand,
   setKonCard,
   setPlayers,
+  setPreviousPlayer,
   setShoot,
   setShooterId,
   setTableCards,
 } from "../slices/gameStateSlice.ts";
 import { RootState } from "../store/store.ts";
 import Card from "./Card.tsx";
-import { TCard } from "../types/types.ts";
+import { Player, TCard } from "../types/types.ts";
 import { useSocketActions } from "../hooks/useSocketActions.ts";
 import TableCard from "./TableCard.tsx";
 import { data } from "autoprefixer";
@@ -30,6 +31,7 @@ function Game() {
     haveToShoot,
     shooterId,
     isGameOver,
+    previousPlayer,
   } = useSelector((state: RootState) => state.gameState);
 
   const userId = useSelector(
@@ -40,7 +42,8 @@ function Game() {
   );
   const isYourTurn = currentPlayer === userId;
   const shootButton = shooterId === userId && haveToShoot === true;
-  const { emitPlayCards, emitVerify, emitPullTheTrigger } = useSocketActions();
+  const { emitPlayCards, emitVerify, emitPullTheTrigger, emitNextRound } =
+    useSocketActions();
   const dispatch = useDispatch();
 
   const [cardsToPlay, setCardsToPlay] = useState<TCard[]>([]);
@@ -53,7 +56,20 @@ function Game() {
   const [round, setRound] = useState<number>(0);
   const [shot, setShot] = useState<number>(0);
 
+  const [locked, setLocked] = useState<boolean>(false);
+
   const otherPlayers = players.filter((player) => player.id !== userId);
+
+  const prevPlayerName = players.find((player) => player.id === previousPlayer);
+  const currentPlayerName = players.find(
+    (player) => player.id === currentPlayer,
+  );
+  const userPlayerName = players.find((player) => player.id === previousPlayer);
+  const [shooterName, setShooterName] = useState<string>("");
+
+  const [isAliveText, setIsAliveText] = useState<boolean>(false);
+
+  const isAlive = players.find((player) => player.id === userId);
 
   function toggleCard(id: string) {
     const cardInPlay = cardsToPlay.find((card) => card.id === id);
@@ -69,6 +85,9 @@ function Game() {
   }
 
   function playCards() {
+    if (locked) {
+      return;
+    }
     emitPlayCards({ roomName: roomId, playerId: userId, cards: cardsToPlay });
     setCardsToPlay([]);
     setCardToVerify("");
@@ -76,12 +95,12 @@ function Game() {
 
   function handleClickCard(card: string) {
     setCardToVerify(card);
-    console.log(cardToVerify);
   }
 
-  console.log(cardsToPlay);
-
   function verifyPlayedCards(action: boolean) {
+    if (locked) {
+      return;
+    }
     emitVerify({
       roomName: roomId,
       playerId: userId,
@@ -90,6 +109,7 @@ function Game() {
     });
     setCardsToPlay([]);
     setCardToVerify("");
+    setLocked(true);
   }
 
   function handleTrigger() {
@@ -105,10 +125,11 @@ function Game() {
       dispatch(setCurrentPlayer(data.currentPlayerId));
       dispatch(setActions(data.isAllActions));
       dispatch(setTableCards(data.tableCards));
+      dispatch(setPreviousPlayer(data.previousPlayer));
     });
     socket.on("hand", (data) => {
       dispatch(setHand(data));
-      console.log(data);
+      // console.log(data);
     });
 
     socket.on("verifyResults", (data) => {
@@ -121,6 +142,11 @@ function Game() {
 
     socket.on("actionStatus", (data) => {
       dispatch(setShooterId(data.userId));
+      console.log("actionStatus", shooterId);
+      // const shooter = players.find(
+      //   (player) => player.id === shooterId,
+      // ) as Player;
+      // setShooterName(shooter.name);
       setTimeout(() => {
         dispatch(setShoot(data.haveToShoot));
       }, 5000);
@@ -129,7 +155,8 @@ function Game() {
     });
 
     socket.on("shootResult", (data) => {
-      console.log(data);
+      // console.log(data);
+      setIsAliveText(data.alive);
       if (!isGameOver) {
         setNextRoundScreen(true);
       }
@@ -143,20 +170,30 @@ function Game() {
     socket.on("newRound", () => {
       setCheck(false);
       setVisible(false);
-
+      dispatch(setPreviousPlayer(undefined));
       dispatch(setShoot(false));
+      setLocked(false);
+    });
+
+    window.addEventListener("beforeunload", () => {
+      socket.emit("leaveRoom", { roomName: roomId });
     });
   }, []);
+
+  useEffect(() => {
+    const shooter = players.find((player) => player.id === shooterId) as Player;
+    setShooterName(shooter?.name);
+  }, [shooterId]);
 
   const [nextRoundScreen, setNextRoundScreen] = useState<boolean>(false);
 
   function handleNextRound() {
+    emitNextRound({ roomName: roomId });
     setRound((state) => state + 1);
     setNextRoundScreen(false);
     dispatch(setShooterId(""));
   }
 
-  console.log(shooterId);
   if (isGameOver) {
     return <span>GAME OVER</span>;
   }
@@ -164,7 +201,9 @@ function Game() {
   if (nextRoundScreen) {
     return (
       <span onClick={handleNextRound}>
-        {shooterId} is lucky to be alive (click to next round)
+        {isAliveText
+          ? `${shooterName} is lucky to be alive (click to next round)`
+          : `${shooterName} is dead. I guess we will continue without him.(click to next round)`}
       </span>
     );
   }
@@ -176,12 +215,13 @@ function Game() {
       <div className={"flex justify-between"}>
         <div className={"flex flex-col border-2 p-2"}>
           <span>GAME DATA:</span>
-          <span>Current kon card : {konCard}</span>
+          <span className={"font-extrabold"}>Current kon card : {konCard}</span>
           <div className={"flex flex-col"}>
-            {otherPlayers.map((player) => (
+            {players.map((player) => (
               <div key={player.id}>
                 <span>
-                  {player.id} have {player.cardsInHand} Cards
+                  {player.name} {player.id === userId ? "(You)" : null} have{" "}
+                  {player.cardsInHand} Cards
                 </span>
               </div>
             ))}
@@ -198,7 +238,14 @@ function Game() {
         ) : null}
       </div>
       <div className={"mt-20 flex flex-col "}>
-        <span>Cards to check : {tableCards.length} </span>
+        {tableCards.length > 0 ? (
+          <span>
+            {prevPlayerName?.name} says there {tableCards.length} {konCard}
+          </span>
+        ) : (
+          <span>Waiting for cards to be played</span>
+        )}
+        {/*<span>Cards to check : {tableCards.length} </span>*/}
 
         {tableCards.length ? (
           <div className={"flex gap-4"}>
@@ -220,8 +267,8 @@ function Game() {
         {check ? (
           <span className={"mt-10"}>
             {result
-              ? `${currentPlayer}You cant be fooled !`
-              : `${currentPlayer} - You fool !`}
+              ? `${currentPlayerName?.name} - You cant be fooled !`
+              : `${currentPlayerName?.name} - You fool !`}
           </span>
         ) : null}
 
@@ -232,11 +279,15 @@ function Game() {
 
       <div className={"flex flex-col items-center justify-between mt-20"}>
         <span>Your hand</span>
-        <div className={"flex gap-4 items-center justify-between"}>
-          {hand.map((card) => (
-            <Card card={card} toggleCard={toggleCard} key={card.id} />
-          ))}
-        </div>
+        {isAlive ? (
+          <div className={"flex gap-4 items-center justify-between"}>
+            {hand.map((card) => (
+              <Card card={card} toggleCard={toggleCard} key={card.id} />
+            ))}
+          </div>
+        ) : (
+          <span>Sorry you are dead</span>
+        )}
 
         {isYourTurn && isAllActions && cardsToPlay.length !== 0 ? (
           <div className={"mt-4 bg-green-200"}>

@@ -67,6 +67,13 @@ export const useSocketActions = () => {
     [socket],
   );
 
+  const emitNextRound = useCallback(
+    ({ roomName }: { roomName: string }) => {
+      socket.emit("nextRound", { roomName: roomName });
+    },
+    [socket],
+  );
+
   // const joinRoom = useCallback((roomId: string, userId: string) => {
   //     socket.emit('joinRoom', {roomId, userId});
   // }, [socket]);
@@ -81,5 +88,6 @@ export const useSocketActions = () => {
     emitPlayCards,
     emitVerify,
     emitPullTheTrigger,
+    emitNextRound,
   };
 };

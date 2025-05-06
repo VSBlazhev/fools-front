@@ -7,7 +7,7 @@ export interface TCard {
 
 export interface Player {
   id: string;
-  name?: string;
+  name: string;
   hand: TCard[];
   cardsInHand?: number;
 }
