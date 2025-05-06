@@ -170,7 +170,7 @@ function Game() {
     socket.on("newRound", () => {
       setCheck(false);
       setVisible(false);
-      dispatch(setPreviousPlayer(undefined));
+      dispatch(setPreviousPlayer(""));
       dispatch(setShoot(false));
       setLocked(false);
     });

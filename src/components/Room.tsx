@@ -43,11 +43,11 @@ function Room() {
       dispatch(setUserReady(data));
     });
 
-    socket.on("timer", (data) => {
+    socket.on("timer", () => {
       setTimer(true);
     });
 
-    socket.on("abortTimer", (data) => {
+    socket.on("abortTimer", () => {
       setTimer(false);
     });
 
